@@ -90,7 +90,7 @@ public:
         return fraction > m_interval.first and fraction < m_interval.second;
     }
 
-    void generate(std::set<Fraction>& set)
+    void generate(std::set<Fraction>& set, std::vector<Fraction>& vector)
     {
         // deduce start period
         Fraction iter = m_shift;
@@ -100,16 +100,14 @@ public:
         iter.reduce();
 
         //load the set
-        while (iter < m_interval.second)
+        do
         {
+            set.insert(iter);
+            vector.push_back(iter);
             iter = iter + m_period;
             iter.reduce();
-            set.insert(iter);
         }
-
-        uint32_t index = 0;
-        for (const auto& iter : set)
-            std::cout << ++index << " - " << iter << '\n';
+        while (iter < m_interval.second);
     }
 
 private:
@@ -136,25 +134,45 @@ public:
 
     void compute()
     {
-        uint32_t index = 0;
         for (auto& generator : m_generators)
         {
-            std::cout << "generator [" << ++index << "]:\n";
             generator.assignInterval(0, 12);
-            generator.generate(m_times);
+            generator.generate(m_times, m_controlTimes);
         }
     }
 
     void printResult() const
     {
-        std::cout << m_times.size() << '\n';
+        std::cout << "All times: " << m_controlTimes.size() << '\n';
+        std::cout << "Without duplication: " << m_times.size() << '\n';
     }
+
+    void printSet() const
+    {
+        uint32_t index = 0;
+        for (const auto& iter : m_times)
+        {
+            std::cout << "[" << ++index << "]: " << iter << '\n';
+        }
+    }
+
+    [[nodiscard]] bool testSet() const
+    {
+        std::set<double> testSet;
+        for (const auto& iter : m_controlTimes)
+        {
+            testSet.insert(iter.getAsDouble());
+        }
+        return testSet.size() == m_times.size();
+    }
+
 
 private:
     std::vector<Generator> m_generators;
     std::set<Fraction> m_times;
     const int32_t m_intervalStart;
     const int32_t m_intervalEnd;
+    std::vector<Fraction> m_controlTimes;
 
 };
 
@@ -163,11 +181,17 @@ int main()
 {
     const int32_t basicPeriod = 12;
 
+    // minute -> hour
     Generator gen0(Fraction((-1) * basicPeriod, 6 * 11), Fraction(basicPeriod, 12 - 1));
+    // hour -> minute
     Generator gen1(Fraction(basicPeriod, 6 * 11), Fraction(basicPeriod, 12 - 1));
+    // second -> hour
     Generator gen2(Fraction(-basicPeriod, 6 * 719), Fraction(basicPeriod, 720 - 1));
+    // hour -> second
     Generator gen3(Fraction(basicPeriod, 6 * 719), Fraction(basicPeriod, 720 - 1));
+    // second -> minute
     Generator gen4(Fraction(-basicPeriod, 6 * 708), Fraction(basicPeriod, 720 - 12));
+    // minute -> second
     Generator gen5(Fraction(basicPeriod, 6 * 708), Fraction(basicPeriod, 720 - 12));
 
     Result result(0, basicPeriod);
@@ -179,9 +203,9 @@ int main()
     result.loadGenerator(gen5);
 
     result.compute();
+    result.printSet();
     std::cout << "----------\n";
     result.printResult();
 
-
-    return 0;
+    return !result.testSet();
 }
