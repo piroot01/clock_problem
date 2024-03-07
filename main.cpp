@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <numeric>
 #include <set>
+#include <map>
 
 
 class Fraction
@@ -156,6 +157,20 @@ public:
         }
     }
 
+    void printAll() const
+    {
+        uint32_t index = 0;
+        for (const auto& iter : m_controlTimes)
+        {
+            std::cout << "[" << ++index << "]: " << iter << '\n';
+        }
+    }
+
+    uint32_t getResult() const
+    {
+        return m_times.size();
+    }
+
     [[nodiscard]] bool testSet() const
     {
         std::set<double> testSet;
@@ -164,6 +179,23 @@ public:
             testSet.insert(iter.getAsDouble());
         }
         return testSet.size() == m_times.size();
+    }
+
+    void printDuplicates() const
+    {
+        typedef std::map<Fraction, unsigned int> CounterMap;
+        CounterMap counts;
+        for (int i = 0; i < m_controlTimes.size(); ++i)
+        {
+            CounterMap::iterator it(counts.find(m_controlTimes[i]));
+            if (it != counts.end()){
+                it->second++;
+            } else {
+                counts[m_controlTimes[i]] = 1;
+            }
+            if (it->second == 2)
+                std::cout << m_controlTimes[i] << '\n';
+        }
     }
 
 
@@ -204,8 +236,11 @@ int main()
 
     result.compute();
     result.printSet();
+    //result.printAll();
     std::cout << "----------\n";
     result.printResult();
+    //result.printDuplicates();
+    std::cout << "For 24h: " << 2 * result.getResult() << '\n';
 
     return !result.testSet();
 }
